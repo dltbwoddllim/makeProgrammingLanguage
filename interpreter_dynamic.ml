@@ -108,10 +108,23 @@ let rec eval : exp -> env -> mem -> value * mem
     |Int n1, Int n2 ->(Int (n1 / n2),mem2)
     | _ -> raise (Failure "Type Error: non-numeric values")
     )
+| EQ(e1, e2) ->
+  let (n1, mem1) = eval e1 env mem in
+  let (n2, mem2) = eval e2 env mem1 in
+    (match n1,n2 with
+    |Int n1, Int n2 ->if n1=n2 then (Bool true, mem2) else (Bool false, mem2)
+    | _ -> raise (Failure "Type Error: non-numeric values")
+    )
+| LT(e1, e2) ->
+  let (n1, mem1) = eval e1 env mem in
+  let (n2, mem2) = eval e2 env mem1 in
+    (match n1,n2 with
+    |Int n1, Int n2 ->if n1>n2 then (Bool true, mem2) else (Bool false, mem2)
+    | _ -> raise (Failure "Type Error: non-numeric values")
+    )
 (* and var = string *)
 
-(* | DIV -> 
-  | EQ -> 
+(*  
   | LT -> 
   | ISZERO -> 
   | READ
