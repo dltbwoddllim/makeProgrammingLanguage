@@ -52,30 +52,6 @@ let rec string_of_mem mem =
 (* let rec eval : exp -> env -> mem -> value * mem
 =fun exp env mem -> raise NotImplemented *)
 
-(* type program = exp
-and exp =
-| CONST of int
-| VAR of var
-| ADD of exp * exp
-| SUB of exp * exp
-| MUL of exp * exp
-| DIV of exp * exp
-| EQ of exp * exp
-| LT of exp * exp
-| ISZERO of exp
-| READ
-| IF of exp * exp * exp
-| LET of var * exp * exp
-| LETREC of var * var * exp * exp
-| LETMREC of var * var * exp * var * var * exp * exp
-| PROC of var * exp
-| CALL of exp * exp
-| NEWREF of exp
-| DEREF of exp
-| SETREF of exp * exp
-| SEQ of exp * exp
-| BEGIN of exp
-and var = string *)
 (* 함수 호출 시 env를 그 때의 env로 가져옴.*)
 let rec eval : Lang.exp -> env -> mem -> value * mem
 = fun exp env mem ->
@@ -121,6 +97,9 @@ let rec eval : Lang.exp -> env -> mem -> value * mem
     |Int n1 ->if n1=0 then (Bool true, mem1) else (Bool false, mem1)
     | _ -> raise (Failure "Type Error: non-numeric values")
     )
+|READ(_) -> 
+  let input = read_line() in
+  (VAR input, mem)
 |IF(e1, e2, e3)->
   let (n1, mem1) = eval e1 env mem in
     (match n1 with
@@ -134,8 +113,15 @@ let rec eval : Lang.exp -> env -> mem -> value * mem
   let env1 = extend_env (x,n1) env in
   let (n2, mem2) = eval e2 env1 mem1 in
   (n2, mem2)
-|LETREC(x1,x2,e1,e2) ->
-  
+|LETREC(f,x,e1,e2) ->
+  let env_2 = extend_env (f,Procedure (x,e1)) env in
+  let (n1, mem1) = eval e2 env_2 mem in
+  (n1, mem1)
+|LETMREC(f,x1,e1,g,x2,e2,e3)->
+  let env_2 = extend_env (f,Procedure (x1,e1)) env in
+  let env_3 = extend_env (g,Procedure (x2, e2)) env_2 in
+  let (n1, mem1) = eval e3 env_3 mem in
+  (n1, mem1)
 |PROC(x, e1) -> (Procedure (x,e1), mem)
 |CALL(e1, e2) ->(
   let (n1, mem1) = eval e1 env mem in
@@ -151,6 +137,21 @@ let rec eval : Lang.exp -> env -> mem -> value * mem
   let newL = new_location() in
   let mem1 = extend_mem (newL, n1) mem in 
   (Loc newL, mem1) 
+|DEREF(e1) ->
+  (let (l1, mem1) = eval e1 env mem in
+  match l1 with
+  |Loc l1 -> 
+    let v = apply_mem mem1 l1 in
+    (v, mem1)
+  | _ -> raise (Failure "Type Error: non-Loc values"))
+|SETREF(e1, e2)->
+  (let (l1, mem1) = eval e1 env mem in
+  let (n1, mem2) = eval e2 env mem1 in
+  match l1 with
+  |Loc l1 -> 
+    let mem3 = extend_mem (l1, n1) mem2 in
+    (n1, mem3)
+  | _ -> raise (Failure "Type Error: non-Loc values"))
 |SEQ(e1, e2) ->
   let (n1, mem1) = eval e1 env mem in 
   let (n2, mem2) = eval e2 env mem1 in
@@ -158,51 +159,6 @@ let rec eval : Lang.exp -> env -> mem -> value * mem
 |BEGIN(e1) ->
   let (n1, mem1) = eval e1 env mem in
   (n1, mem1)
-(* |CALL(e1, e2) ->
-  let ((n1, e), mem1) = eval e1 env mem in
-  let (n2, mem2) = eval e2 env mem1 in
-  let env_2 = extend_env (n1,n2) env in
-  let (n3, mem3) = eval e env_2 mem2 *)
-(* |DEREF(e1) ->
-  let (l, mem1) = eval e1 env mem
-
-  |SETREF(e1)-> *)
-(* |LETREC(x1, x2, e1, e2) ->
-  let f = Procedure(x1, e1) in 
-  let env1 = extend_env f env in
-  let (n2, mem2) = eval e2 env1 mem in
-    (match n1,n2 with
-    |Int n1, Int n2 -> (Int n2,mem2)
-    | _ -> raise (Failure "Type Error: non-numeric values")) 
-|BEGIN(e1) -> (eval e1 env mem) *)
-  (* and var = string *)
-
-(* memory *)
-(* let empty_mem = [] 
-let extend_mem (l,v) m = (l,v)::m
-let rec apply_mem m l = 
-  match m with
-  | [] -> raise (Failure ("Location " ^ string_of_int l ^ " is unbound in Mem"))
-  | (y,v)::tl -> if l = y then v else apply_mem tl l
-
-(* use the function 'new_location' to generate a fresh memory location *)
-let counter = ref 0
-let new_location () = counter:=!counter+1;!counter *)
-
-(* | LETREC of var * var * exp * exp
-| LETMREC of var * var * exp * var * var * exp * exp  *)
-
-(* var * var * exp * exp
-  | READ
-  | LETREC -> 
-  | LETMREC -> 
-  | PROC -> 
-  | CALL -> 
-  | NEWREF -> 
-  | DEREF -> 
-  | SETREF -> 
-  | SEQ -> 
-  | BEGIN ->  *)
 	
 (* driver code *)
 let run : program -> value
