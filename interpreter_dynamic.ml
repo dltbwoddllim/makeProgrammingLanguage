@@ -91,15 +91,20 @@ let rec eval : Lang.exp -> env -> mem -> value * mem
     |Int n1, Int n2 ->if n1=n2 then (Bool true, mem2) else (Bool false, mem2)
     | _ -> raise (Failure "Type Error: non-numeric values")
     )
+| LT(e1, e2) ->
+  let (n1, mem1) = eval e1 env mem in
+  let (n2, mem2) = eval e2 env mem1 in
+    (match n1,n2 with
+    |Int n1, Int n2 ->if n1<n2 then (Bool true, mem2) else (Bool false, mem2)
+    | _ -> raise (Failure "Type Error: non-numeric values")
+    )
 | ISZERO(e1) ->
   let (n1, mem1) = eval e1 env mem in
     (match n1 with
     |Int n1 ->if n1=0 then (Bool true, mem1) else (Bool false, mem1)
     | _ -> raise (Failure "Type Error: non-numeric values")
-    )
-|READ(_) -> 
-  let input = read_line() in
-  (VAR input, mem)
+    )  
+| READ -> Int (read_int ()), mem
 |IF(e1, e2, e3)->
   let (n1, mem1) = eval e1 env mem in
     (match n1 with
@@ -159,7 +164,8 @@ let rec eval : Lang.exp -> env -> mem -> value * mem
 |BEGIN(e1) ->
   let (n1, mem1) = eval e1 env mem in
   (n1, mem1)
-	
+|_ -> raise(UndefinedSemantics)
+
 (* driver code *)
 let run : program -> value
 =fun pgm -> (fun (v,_) -> v) (eval pgm empty_env empty_mem) 
